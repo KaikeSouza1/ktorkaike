@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class Venda(
     val id: Int? = null,
     val data: String,
-    val cliente: Int, // Mantido como no original
+    val cliente_id: Int,
     val totalVenda: Double
 )
 

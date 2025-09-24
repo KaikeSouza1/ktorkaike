@@ -5,19 +5,20 @@ import br.com.api.kaike.models.ItemVenda
 import br.com.api.kaike.models.Venda
 import br.com.api.kaike.models.VendaCompleta
 import java.sql.SQLException
+import java.sql.Date // Importe a classe Date do SQL
 
 class VendaRepository {
 
     fun getAll(): List<Venda> {
         val vendas = mutableListOf<Venda>()
         DatabaseFactory.getConnection().use { conn ->
-            conn.prepareStatement("SELECT * FROM venda ORDER BY id").use { stmt ->
+            conn.prepareStatement("SELECT id, data, cliente_id, total_venda FROM venda ORDER BY id").use { stmt ->
                 stmt.executeQuery().use { rs ->
                     while (rs.next()) {
                         vendas.add(Venda(
                             id = rs.getInt("id"),
                             data = rs.getString("data"),
-                            cliente = rs.getInt("cliente"),
+                            cliente_id = rs.getInt("cliente_id"),
                             totalVenda = rs.getDouble("total_venda")
                         ))
                     }
@@ -29,14 +30,14 @@ class VendaRepository {
 
     fun getById(id: Int): Venda? {
         DatabaseFactory.getConnection().use { conn ->
-            conn.prepareStatement("SELECT * FROM venda WHERE id = ?").use { stmt ->
+            conn.prepareStatement("SELECT id, data, cliente_id, total_venda FROM venda WHERE id = ?").use { stmt ->
                 stmt.setInt(1, id)
                 stmt.executeQuery().use { rs ->
                     if (rs.next()) {
                         return Venda(
                             id = rs.getInt("id"),
                             data = rs.getString("data"),
-                            cliente = rs.getInt("cliente"),
+                            cliente_id = rs.getInt("cliente_id"),
                             totalVenda = rs.getDouble("total_venda")
                         )
                     }
@@ -51,10 +52,10 @@ class VendaRepository {
             conn.autoCommit = false
             try {
                 val vendaId = conn.prepareStatement(
-                    "INSERT INTO venda (data, cliente, total_venda) VALUES (?, ?, ?) RETURNING id"
+                    "INSERT INTO venda (data, cliente_id, total_venda) VALUES (?, ?, ?) RETURNING id"
                 ).use { stmt ->
-                    stmt.setString(1, venda.data)
-                    stmt.setInt(2, venda.cliente)
+                    stmt.setDate(1, Date.valueOf(venda.data))
+                    stmt.setInt(2, venda.cliente_id)
                     stmt.setDouble(3, venda.totalVenda)
                     stmt.executeQuery().use { rs ->
                         if (rs.next()) rs.getInt(1) else throw SQLException("Falha ao criar venda")
@@ -129,7 +130,7 @@ class VendaRepository {
     fun getVendaCompleta(vendaId: Int): VendaCompleta? {
         val venda = getById(vendaId) ?: return null
         val itens = getItensByVendaId(vendaId)
-        val cliente = ClienteRepository().getById(venda.cliente) ?: return null
+        val cliente = ClienteRepository().getById(venda.cliente_id) ?: return null
 
         return VendaCompleta(venda, itens, cliente)
     }
